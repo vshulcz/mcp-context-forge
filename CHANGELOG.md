@@ -23,6 +23,8 @@
 
 - **Sample Python Sandbox Server** Sample MCP Server has been removed due to security concerns with the example and it will not be maintained as part of the ContextForge project. Note this is not part of the contextforge application.
 
+- **MCP SDK 2.0 migration: responses to server-initiated MCP requests are temporarily dropped** - As part of the migration to `mcp==2.0.0b2`, the SDK's `RequestResponder` is a typing-only stub and `responder.respond()` no longer exists. The hold-then-respond multiplexer in `mcpgateway/services/notification_service.py` (`_respond_with_payload`) therefore logs a warning and drops the response to a server-initiated request instead of delivering it. Notification *delivery* (tools/resources/prompts `list_changed`) is unaffected. Tracked for redesign around the v2 return-based callback contract; see the migration notes in `mcpgateway/transports/streamablehttp_transport.py`.
+
 ## [1.0.7] - 2026-08-04 - Security Hardening, Unified Search, OAuth Improvements, Dataplane Enhancements, and Operational Reliability
 
 ### Overview
