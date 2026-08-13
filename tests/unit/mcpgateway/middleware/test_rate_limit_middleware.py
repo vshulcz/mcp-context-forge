@@ -9,16 +9,20 @@ Examples:
     >>> pytest tests/unit/mcpgateway/middleware/test_rate_limit_middleware.py -v  # doctest: +SKIP
 """
 
+# Standard
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+# Third-Party
 import pytest
 
 
 def _trusted_internal_request(path, *, marker="rust", hmac_value=None, ctx="ctx", client="127.0.0.1"):
     """Build a real loopback internal request for trust-gate exemption tests."""
+    # Third-Party
     from starlette.requests import Request
 
+    # First-Party
     from mcpgateway.auth_context import _expected_internal_mcp_runtime_auth_header
 
     headers = [
@@ -53,6 +57,7 @@ class TestRateLimiterRedisUrl:
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
 
+        # First-Party
         from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
         middleware = RateLimitMiddleware(MagicMock())
@@ -71,6 +76,7 @@ class TestRateLimiterRedisUrl:
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
 
+        # First-Party
         from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
         middleware = RateLimitMiddleware(MagicMock())
@@ -105,7 +111,9 @@ class TestRateLimitMiddlewareTiers:
             mock_settings.rate_limit_lockout_enabled = True
             mock_settings.rate_limit_lockout_threshold = 5
             mock_settings.rate_limit_lockout_duration_minutes = 15
+            mock_settings.session_refresh_rate_limit = 10
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             yield RateLimitMiddleware(mock_app)
@@ -149,6 +157,12 @@ class TestRateLimitMiddlewareTiers:
         tier = middleware.get_endpoint_tier("/auth/email/login")
         assert tier["limit"] == 10
         assert tier["burst"] == 0
+
+    def test_endpoint_tier_session_refresh(self, middleware):
+        """Test SESSION_REFRESH tier detection for /auth/refresh on both mounts."""
+        assert middleware.get_endpoint_tier("/auth/refresh")["limit"] == 10
+        assert middleware.get_endpoint_tier("/v1/auth/refresh")["limit"] == 10
+        assert middleware._get_tier_name("/auth/refresh") == "SESSION_REFRESH"
 
     def test_endpoint_tier_high(self, middleware):
         """Test HIGH tier detection for token endpoints."""
@@ -443,7 +457,9 @@ class TestRateLimitMiddlewareTiers:
             mock_settings.rate_limit_lockout_enabled = True
             mock_settings.rate_limit_lockout_threshold = 5
             mock_settings.rate_limit_lockout_duration_minutes = 15
+            mock_settings.session_refresh_rate_limit = 10
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             mw = RateLimitMiddleware(mock_app)
@@ -473,7 +489,9 @@ class TestRateLimitMiddlewareTiers:
             mock_settings.rate_limit_lockout_enabled = True
             mock_settings.rate_limit_lockout_threshold = 5
             mock_settings.rate_limit_lockout_duration_minutes = 15
+            mock_settings.session_refresh_rate_limit = 10
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             mw = RateLimitMiddleware(mock_app)
@@ -510,7 +528,9 @@ class TestRateLimitMiddlewareTiers:
             mock_settings.rate_limit_lockout_enabled = True
             mock_settings.rate_limit_lockout_threshold = 5
             mock_settings.rate_limit_lockout_duration_minutes = 15
+            mock_settings.session_refresh_rate_limit = 10
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             mw = RateLimitMiddleware(mock_app)
@@ -543,6 +563,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_security_logger_type(self, middleware):
         """Test SecurityLogger has correct type."""
+        # First-Party
         from mcpgateway.services.security_logger import SecurityLogger
 
         assert isinstance(middleware.security_logger, SecurityLogger)
@@ -588,11 +609,13 @@ class TestRateLimitMiddlewareTiers:
 
     def test_dispatch_passes_when_disabled(self, middleware, mock_request):
         """Test dispatch passes when rate limiting disabled."""
+        # Standard
         from unittest.mock import AsyncMock
 
         middleware.enabled = False
         mock_call_next = AsyncMock(return_value=MagicMock(headers={}))
 
+        # Standard
         import asyncio
 
         asyncio.run(middleware.dispatch(mock_request, mock_call_next))
@@ -666,6 +689,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_create_rate_limit_response_structure(self, middleware):
         """Test rate limit response has correct structure."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -685,6 +709,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_create_rate_limit_response_with_reset(self, middleware):
         """Test rate limit response includes reset info."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -701,6 +726,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_log_security_event_handles_exception(self, middleware):
         """Test security event logging handles exceptions."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -722,6 +748,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_check_rate_limit_uses_executor(self, middleware):
         """Test check_rate_limit uses executor."""
+        # Standard
         import asyncio
 
         result = asyncio.run(
@@ -738,6 +765,7 @@ class TestRateLimitMiddlewareTiers:
     @pytest.mark.asyncio
     async def test_dispatch_all_dims_allowed(self, middleware, mock_request):
         """Test dispatch when all dimensions allowed."""
+        # Standard
         from unittest.mock import AsyncMock
 
         mock_request.url.path = "/health"
@@ -815,6 +843,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_should_lockout_when_disabled(self, middleware):
         """Test lockout returns false when disabled."""
+        # Standard
         import asyncio
 
         middleware.lockout_enabled = False
@@ -872,6 +901,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_response_body_format(self, middleware):
         """Test response body has correct format."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -884,6 +914,7 @@ class TestRateLimitMiddlewareTiers:
             tier_name="CRITICAL",
         )
 
+        # Standard
         import json
 
         body = json.loads(response.body)
@@ -1010,6 +1041,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_rate_limit_response_contains_retry_after(self, middleware):
         """Test rate limit response has Retry-After."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -1026,6 +1058,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_check_rate_limit_exception_path(self, middleware):
         """Test check_rate_limit handles exception."""
+        # Standard
         import asyncio
 
         original_executor = middleware.executor
@@ -1057,6 +1090,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_log_security_event_with_user_info(self, middleware):
         """Test security event logging with user info."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
@@ -1123,7 +1157,9 @@ class TestRateLimitMiddlewareTiers:
             mock_settings.rate_limit_lockout_enabled = True
             mock_settings.rate_limit_lockout_threshold = 5
             mock_settings.rate_limit_lockout_duration_minutes = 15
+            mock_settings.session_refresh_rate_limit = 10
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             mw = RateLimitMiddleware(mock_app)
@@ -1133,6 +1169,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_check_rate_limit_handles_timeout(self, middleware):
         """Test check_rate_limit handles timeout from executor."""
+        # Standard
         import asyncio
 
         original_executor = middleware.executor
@@ -1161,6 +1198,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_security_logger_has_methods(self, middleware):
         """Test SecurityLogger has required methods."""
+        # First-Party
         from mcpgateway.services.security_logger import SecurityLogger
 
         assert hasattr(SecurityLogger, "log_authentication_attempt")
@@ -1179,12 +1217,14 @@ class TestRateLimitMiddlewareTiers:
 
     def test_middleware_logs_when_disabled(self, middleware):
         """Test middleware logs info when disabled."""
+        # Standard
         from unittest.mock import MagicMock
 
         with patch("mcpgateway.middleware.rate_limit_middleware.settings") as ms:
             ms.rate_limiting_enabled = False
             ms.rate_limiting_redis_enabled = True
 
+            # First-Party
             from mcpgateway.middleware.rate_limit_middleware import RateLimitMiddleware
 
             mw = RateLimitMiddleware(MagicMock())
@@ -1223,6 +1263,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_should_lockout_uses_both_redis_and_memory(self, middleware):
         """Test lockout check tries Redis first then memory."""
+        # Standard
         import asyncio
 
         if not hasattr(middleware, "_violation_counts"):
@@ -1237,6 +1278,7 @@ class TestRateLimitMiddlewareTiers:
 
     def test_check_rate_limit_returns_tuple(self, middleware):
         """Test check rate limit returns tuple properly."""
+        # Standard
         import asyncio
 
         result = asyncio.run(middleware._check_rate_limit("test:dim", {"limit": 10, "burst": 2}, "LOW"))
@@ -1261,12 +1303,14 @@ class TestRateLimitMiddlewareTiers:
     def test_middleware_initializes_executor(self, middleware):
         """Test middleware initializes thread pool executor."""
         assert middleware.executor is not None
+        # Standard
         from concurrent.futures import ThreadPoolExecutor
 
         assert isinstance(middleware.executor, ThreadPoolExecutor)
 
     def test_rate_limit_response_has_all_headers(self, middleware):
         """Test rate limit response has all required headers."""
+        # Standard
         from unittest.mock import MagicMock
 
         mock_request = MagicMock()
